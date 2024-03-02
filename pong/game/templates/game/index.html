@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Gamedev Canvas Workshop - lesson 10: finishing up</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+        canvas {
+            background: #eee;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="myCanvas" width="480" height="480"></canvas>
+
+    <script>
+        var ws = new WebSocket('ws://localhost:8000/ws/my_consumer/');
+        ws.onopen = function(event) {
+            console.log('WebSocket connection opened');
+        };
+        ws.onclose = function(event) {
+            console.log('WebSocket connection closed');
+        };
+        ws.onerror = function(event) {
+            console.error('WebSocket error:', event);
+        };
+        ws.onmessage = function(event) {
+            var message = JSON.parse(event.data);
+            console.log('Received message:', message);
+        };
+        function sendMessage(message) {
+            ws.send(JSON.stringify(message));
+        }
+        var canvas = document.getElementById("myCanvas");
+        var ctx = canvas.getContext("2d");
+        var ballRadius = 10;
+        var x = canvas.width / 2;
+        var y = canvas.height / 2;
+        var dx = -1;
+        var dy = -1;
+        var paddleHeight = 75;
+        var paddleWidth = 10;
+        var players = [
+            {paddleY: (canvas.height - paddleHeight) / 2,
+            upPressed: false,
+            downPressed: false,
+            score: 0,},
+            {paddleY: (canvas.height - paddleHeight) / 2,
+            upPressed: false,
+            downPressed: false,
+            score: 0,}
+        ];
+
+        document.addEventListener("keydown", keyDownHandler, false);
+        document.addEventListener("keyup", keyUpHandler, false);
+
+        function keyDownHandler(e) {
+            if (e.code == "ArrowUp") {
+                players[1].upPressed = true;
+            }
+            else if (e.code == 'ArrowDown') {
+                players[1].downPressed = true;
+            }
+            else if (e.code == 'KeyW') {
+                players[0].upPressed = true;
+            }
+            else if (e.code == 'KeyS') {
+                players[0].downPressed = true;
+            }
+        }
+        function keyUpHandler(e) {
+            if (e.code == "ArrowUp") {
+                players[1].upPressed = false;
+            }
+            else if (e.code == 'ArrowDown') {
+                players[1].downPressed = false;
+            }
+            else if (e.code == 'KeyW') {
+                players[0].upPressed = false;
+            }
+            else if (e.code == 'KeyS') {
+                players[0].downPressed = false;
+            }
+        }
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#0095DD";
+            ctx.fill();
+            ctx.closePath();
+        }
+        function drawPaddles() {
+            ctx.beginPath();
+            ctx.rect(0, players[0].paddleY, paddleWidth, paddleHeight);
+            ctx.rect(canvas.width - paddleWidth, players[1].paddleY, paddleWidth, paddleHeight);
+            ctx.fillStyle = "#0095DD";
+            ctx.fill();
+            ctx.closePath();
+        }
+        function drawScore() {
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#0095DD";
+            ctx.fillText("Score: " + players[0].score + " : " + players[1].score, 8, 20);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBall();
+            drawPaddles();
+            drawScore();
+            if (y + dy > canvas.height - ballRadius || y + dy < ballRadius) {
+                dy = -dy;
+            }
+            if (x + dx < ballRadius)
+            {
+                if (y > players[0].paddleY && y < players[0].paddleY + paddleHeight) {
+                    dx = -dx;
+                }
+                else {
+                    players[1].score++;
+                    x = canvas.width / 2;
+                    y = canvas.height - 30;
+                    dx = 1;
+                    dy = -1;
+                    players[0].paddleY = (canvas.height - paddleHeight) / 2;
+                    players[1].paddleY = (canvas.height - paddleHeight) / 2;
+                }
+            }
+            else if (x + dx > canvas.width - ballRadius) {
+                if (y > players[1].paddleY && y < players[1].paddleY + paddleHeight) {
+                    dx = -dx;
+                }
+                else {
+                    players[0].score++;
+                    x = canvas.width / 2;
+                    y = canvas.height - 30;
+                    dx = 1;
+                    dy = -1;
+                    players[0].paddleY = (canvas.height - paddleHeight) / 2;
+                    players[1].paddleY = (canvas.height - paddleHeight) / 2;
+                }
+            }
+
+            if (players[0].downPressed && players[0].paddleY < canvas.height - paddleHeight) {
+                players[0].paddleY += 7;
+            }
+            else if (players[0].upPressed && players[0].paddleY > 0) {
+                players[0].paddleY -= 7;
+            }
+            if (players[1].downPressed && players[1].paddleY < canvas.height - paddleHeight) {
+                players[1].paddleY += 7;
+            }
+            else if (players[1].upPressed && players[1].paddleY > 0) {
+                players[1].paddleY -= 7;
+            }
+
+            x += dx;
+            y += dy;
+
+            requestAnimationFrame(draw);
+            // sendMessage({
+            //     placeholder: 'lol',
+            // });
+        }
+
+        draw();
+    </script>
+
+</body>
+
+</html>
